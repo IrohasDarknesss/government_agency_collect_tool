@@ -48,7 +48,14 @@ export default function BidFilterBar({
           <div className="flex flex-wrap items-center gap-2.5">
             {/* The Toggle Button requested by user */}
             <button
-              onClick={() => setOnlyHighMatch(!onlyHighMatch)}
+              onClick={() => {
+                if (onlyHighMatch) {
+                  setOnlyHighMatch(false);
+                } else {
+                  setOnlyHighMatch(true);
+                  if (!matchThreshold) setMatchThreshold(80);
+                }
+              }}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-2 border shadow-xs ${
                 onlyHighMatch
                   ? 'bg-indigo-700 text-white border-indigo-700 ring-2 ring-indigo-300'
@@ -63,22 +70,36 @@ export default function BidFilterBar({
                 </span>
               ) : (
                 <span className="text-slate-400 text-[10px] font-normal">
-                  クリックで絞込
+                  OFF（全件表示）
                 </span>
               )}
             </button>
 
-            {/* Threshold Selector */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs">
-              <span className="text-slate-500 font-medium text-[11px]">基準:</span>
+            {/* Threshold Selector - Fully synchronized with onlyHighMatch */}
+            <div className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1 text-xs transition ${
+              onlyHighMatch ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-200' : 'bg-white border-slate-200'
+            }`}>
+              <span className="text-slate-500 font-medium text-[11px]">適合度:</span>
               <select
-                value={matchThreshold}
-                onChange={(e) => setMatchThreshold(Number(e.target.value))}
-                className="bg-transparent font-bold text-indigo-700 focus:outline-none cursor-pointer"
+                value={onlyHighMatch ? matchThreshold : 0}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val === 0) {
+                    setOnlyHighMatch(false);
+                  } else {
+                    setMatchThreshold(val);
+                    setOnlyHighMatch(true);
+                  }
+                }}
+                className={`bg-transparent font-bold focus:outline-none cursor-pointer ${
+                  onlyHighMatch ? 'text-indigo-900' : 'text-slate-600'
+                }`}
               >
-                <option value={80}>80% 以上（高適合・推奨）</option>
+                <option value={0}>全件表示（絞り込みなし）</option>
+                <option value={80}>🎯 80% 以上（高適合・即Go推奨）</option>
                 <option value={70}>70% 以上（中〜高適合）</option>
                 <option value={60}>60% 以上（広めに抽出）</option>
+                <option value={50}>50% 以上（見送り以外）</option>
                 <option value={90}>90% 以上（厳選案件）</option>
               </select>
             </div>

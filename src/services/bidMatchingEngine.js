@@ -8,7 +8,7 @@ export const DEFAULT_COMPANY_PROFILE = {
   companyName: '自社（IT・DXソリューション事業部）',
   qualifiedGrade: 'C', // 保有資格: 役務の提供等のC等級
   targetRegion: 'kanto', // 主力地域: 関東・甲信越
-  targetKeywords: ['AI', '生成AI', 'Web', 'クラウド', 'システム開発', 'DX', 'ダッシュボード', 'アクセシビリティ', 'データ分析', 'IoT'],
+  targetKeywords: ['システム', '開発', '保守', '運用', 'AI', '生成AI', 'Web', 'クラウド', 'DX', 'ネットワーク', '端末', 'ソフトウェア', 'データ分析', 'IoT'],
   excludedKeywords: ['清掃', '警備', '工事', '印刷', '解体', '廃棄物', '給食'],
   minLeadDays: 10, // 最低限必要な準備日数
   autoFilterThreshold: 80 // 高適合判定しきい値 (%)

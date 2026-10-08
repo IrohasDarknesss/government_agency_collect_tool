@@ -510,14 +510,14 @@ export default function App() {
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-indigo-600" />
                       <span>
-                        <strong>「自社適合案件（{matchThreshold}%以上）」で絞り込み中</strong>（{filteredBiddingArticles.length}件抽出）
+                        <strong>「適合度 {matchThreshold}% 以上」で絞り込み中</strong>（{filteredBiddingArticles.length}件抽出 / スコア{matchThreshold}%未満の案件はすべて非表示）
                       </span>
                     </div>
                     <button
                       onClick={() => setOnlyHighMatch(false)}
                       className="text-indigo-600 hover:text-indigo-800 underline font-bold"
                     >
-                      絞り込みを解除して全件に戻す
+                      全件表示に戻す（絞込解除）
                     </button>
                   </div>
                 )}
