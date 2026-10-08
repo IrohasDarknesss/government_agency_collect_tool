@@ -339,26 +339,33 @@ export default function App() {
       />
 
       {/* Main Navigation Mode Selector (News vs Procurement) */}
-      <div className="bg-slate-800 border-b border-slate-700 text-white px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-1 sm:gap-2">
+      <div className="bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <div className="flex items-center gap-1 sm:gap-3 py-1">
             {/* Procurement Mode Tab */}
             <button
               onClick={() => {
                 setActiveTabMode('procurement');
                 setSearchQuery('');
               }}
-              className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition ${
+              className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center gap-2.5 border-b-2 transition rounded-t-lg ${
                 activeTabMode === 'procurement'
-                  ? 'border-indigo-400 text-white bg-slate-700/60'
-                  : 'border-transparent text-slate-300 hover:text-white hover:bg-slate-700/30'
+                  ? 'border-indigo-400 text-white bg-slate-800 shadow-sm'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Briefcase className="w-4 h-4 text-indigo-400" />
-              <span>🏷️ 官公需・入札調達情報（機械判定）</span>
-              <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-mono">
-                {biddingArticles.length}
-              </span>
+              <Briefcase className="w-4 h-4 text-indigo-400 shrink-0" />
+              <div className="text-left">
+                <div className="flex items-center gap-1.5">
+                  <span>🏷️ 官公需・入札調達（案件獲得）</span>
+                  <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                    {biddingArticles.length}件
+                  </span>
+                </div>
+                <div className="text-[10px] text-indigo-300 font-normal">
+                  【営業・売上】自社適合度＆Go/No-Go判定
+                </div>
+              </div>
             </button>
 
             {/* News Mode Tab */}
@@ -367,23 +374,57 @@ export default function App() {
                 setActiveTabMode('news');
                 setSearchQuery('');
               }}
-              className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition ${
+              className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center gap-2.5 border-b-2 transition rounded-t-lg ${
                 activeTabMode === 'news'
-                  ? 'border-gov-blue-400 text-white bg-slate-700/60'
-                  : 'border-transparent text-slate-300 hover:text-white hover:bg-slate-700/30'
+                  ? 'border-gov-blue-400 text-white bg-slate-800 shadow-sm'
+                  : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              <Building2 className="w-4 h-4 text-gov-blue-300" />
-              <span>📢 省庁報道発表・政策ニュース</span>
-              <span className="bg-slate-600 text-slate-200 text-[10px] px-1.5 py-0.2 rounded-full font-mono">
-                {articles.length}
-              </span>
+              <Building2 className="w-4 h-4 text-gov-blue-300 shrink-0" />
+              <div className="text-left">
+                <div className="flex items-center gap-1.5">
+                  <span>📢 省庁報道発表・政策ニュース</span>
+                  <span className="bg-slate-600 text-slate-200 text-[10px] px-1.5 py-0.2 rounded-full font-mono">
+                    {articles.length}件
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-normal">
+                  【企画・情報収集】各省庁の施策・補助金速報
+                </div>
+              </div>
             </button>
           </div>
 
           {activeTabMode === 'procurement' && (
-            <div className="hidden md:flex items-center gap-2 text-xs text-slate-300">
-              <span>保有資格: 役務<strong>{companyProfile.qualifiedGrade}等級</strong> ({companyProfile.targetRegion})</span>
+            <div className="flex items-center gap-2 text-xs text-slate-300 pb-2 md:pb-0">
+              <span className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-md text-[11px]">
+                現在の自社設定: 役務<strong>{companyProfile.qualifiedGrade}等級</strong> ({companyProfile.targetRegion})
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Purpose Explanation Guide Banner */}
+      <div className="bg-slate-800/90 border-b border-slate-700 px-4 sm:px-6 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
+          {activeTabMode === 'procurement' ? (
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                🎯 営業・受注目的
+              </span>
+              <span>
+                国や自治体が発注する入札公告です。自社の資格や得意分野と自動照合し、<strong>「自社が受注できるか（80%以上適合）」</strong>を即座に判定します。
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="bg-sky-500/20 text-sky-300 border border-sky-400/30 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                📢 企画・インプット目的
+              </span>
+              <span>
+                各省庁の公式プレスリリース・報道資料です。<strong>補助金の公募開始、法改正、業界ガイドライン策定</strong>などの最新動向を調査・把握できます。
+              </span>
             </div>
           )}
         </div>
@@ -439,6 +480,19 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Data Source Notice Bar */}
+                <div className="bg-slate-100 border border-slate-200/80 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    <span>
+                      <strong>官公需ポータル（KKJ）調達仕様データ稼働中</strong>（計{biddingArticles.length}件の公告をリアルタイム判定中）
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    全省庁統一資格（A〜D等級）照合＆Go/No-Go判定アルゴリズム稼働中
+                  </span>
+                </div>
+
                 {/* Notice bar if High match is active */}
                 {onlyHighMatch && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-indigo-900">
