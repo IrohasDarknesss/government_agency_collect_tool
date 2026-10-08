@@ -195,6 +195,37 @@ export default function App() {
     setBidSortBy('match_desc');
   };
 
+  // Feed and History Handlers
+  const handleToggleFeed = async (feedId) => {
+    try {
+      await toggleFeedState(feedId);
+      const res = await fetchFeeds();
+      if (res.feeds) setFeeds(res.feeds);
+      showToast('フィードの有効/無効を更新しました', 'info');
+    } catch (e) {
+      showToast('フィード更新に失敗しました', 'error');
+    }
+  };
+
+  const handleAddFeed = async (feedData) => {
+    try {
+      const res = await addCustomFeed(feedData);
+      if (res.success) {
+        const refreshed = await fetchFeeds();
+        if (refreshed.feeds) setFeeds(refreshed.feeds);
+        showToast('新しいRSSフィードを登録しました', 'success');
+      }
+    } catch (e) {
+      showToast('フィード登録に失敗しました', 'error');
+    }
+  };
+
+  const handleClearHistory = () => {
+    localStorage.removeItem('govinfo_history_v1');
+    setHistory([]);
+    showToast('閲覧履歴を消去しました', 'info');
+  };
+
   // Filter Pipeline for Bidding Articles (Memoized)
   const filteredBiddingArticles = useMemo(() => {
     return biddingArticles.filter((item) => {
