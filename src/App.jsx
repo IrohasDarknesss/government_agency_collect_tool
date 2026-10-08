@@ -14,6 +14,7 @@ import BidArticleCard from './components/BidArticleCard';
 import BidDetailModal from './components/BidDetailModal';
 import BidFilterBar from './components/BidFilterBar';
 import BidProfileModal from './components/BidProfileModal';
+import BiddingFaqModal from './components/BiddingFaqModal';
 import { INITIAL_PROCUREMENT_ARTICLES } from './data/bidProcurementData';
 import { 
   getCompanyProfile, 
@@ -101,6 +102,7 @@ export default function App() {
   const [isFeedsModalOpen, setIsFeedsModalOpen] = useState(false);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isBiddingFaqOpen, setIsBiddingFaqOpen] = useState(false);
 
   // Status & Feedback
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -343,6 +345,7 @@ export default function App() {
         onOpenFeeds={() => setIsFeedsModalOpen(true)}
         onOpenAlerts={() => setIsAlertsModalOpen(true)}
         onOpenHistory={() => setIsHistoryModalOpen(true)}
+        onOpenFaq={() => setIsBiddingFaqOpen(true)}
         lastFetchedTime={lastFetchedTime}
         totalArticlesCount={activeTabMode === 'procurement' ? biddingArticles.length : articles.length}
       />
@@ -406,9 +409,24 @@ export default function App() {
 
           {activeTabMode === 'procurement' && (
             <div className="flex items-center gap-2 text-xs text-slate-300 pb-2 md:pb-0">
-              <span className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-md text-[11px]">
-                現在の自社設定: 役務<strong>{companyProfile.qualifiedGrade}等級</strong> ({companyProfile.targetRegion})
+              <span className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-md text-[11px] flex items-center gap-2">
+                <span>現在の自社設定: 役務<strong>{companyProfile.qualifiedGrade}等級</strong> ({companyProfile.targetRegion})</span>
+                <button
+                  onClick={() => setIsBiddingFaqOpen(true)}
+                  className="bg-indigo-600/70 hover:bg-indigo-500 text-indigo-200 hover:text-white px-2 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1"
+                  title="A〜D等級の意味と、なぜC等級に設定しているかの解説を表示"
+                >
+                  <HelpCircle className="w-3 h-3" />
+                  なぜ設定？
+                </button>
               </span>
+              <button
+                onClick={() => setIsBiddingFaqOpen(true)}
+                className="hidden lg:flex items-center gap-1 text-[11px] text-indigo-300 hover:text-white bg-indigo-950/60 border border-indigo-700/60 hover:border-indigo-500 px-2.5 py-1 rounded-md transition font-medium"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+                入札・等級FAQガイド
+              </button>
             </div>
           )}
         </div>
@@ -460,6 +478,7 @@ export default function App() {
             setSortBy={setBidSortBy}
             onResetFilters={handleResetBidFilters}
             onOpenProfileModal={() => setIsBidProfileModalOpen(true)}
+            onOpenFaq={() => setIsBiddingFaqOpen(true)}
             profile={companyProfile}
             resultCount={filteredBiddingArticles.length}
             totalCount={biddingArticles.length}
@@ -647,6 +666,22 @@ export default function App() {
           profile={companyProfile}
           onClose={() => setIsBidProfileModalOpen(false)}
           onSaveProfile={handleSaveProfile}
+          onOpenFaq={() => {
+            setIsBidProfileModalOpen(false);
+            setIsBiddingFaqOpen(true);
+          }}
+        />
+      )}
+
+      {/* Bidding & Grade Guide FAQ Modal */}
+      {isBiddingFaqOpen && (
+        <BiddingFaqModal
+          isOpen={isBiddingFaqOpen}
+          onClose={() => setIsBiddingFaqOpen(false)}
+          onOpenProfileModal={() => {
+            setIsBiddingFaqOpen(false);
+            setIsBidProfileModalOpen(true);
+          }}
         />
       )}
 

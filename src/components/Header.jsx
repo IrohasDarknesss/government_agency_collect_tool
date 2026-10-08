@@ -8,7 +8,8 @@ import {
   Bell, 
   History,
   X,
-  SlidersHorizontal
+  SlidersHorizontal,
+  HelpCircle
 } from 'lucide-react';
 
 export default function Header({ 
@@ -21,6 +22,7 @@ export default function Header({
   onOpenFeeds, 
   onOpenAlerts,
   onOpenHistory,
+  onOpenFaq,
   lastFetchedTime,
   totalArticlesCount
 }) {
@@ -155,6 +157,18 @@ export default function Header({
             >
               <History className="w-4 h-4" />
             </button>
+
+            {/* Bidding & Grade FAQ Guide */}
+            {onOpenFaq && (
+              <button
+                onClick={onOpenFaq}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition shadow-2xs"
+                title="入札・資格等級（A〜D）のFAQ＆解説ガイド"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-600" />
+                <span>入札FAQ</span>
+              </button>
+            )}
 
             {/* Saved Articles Drawer Trigger */}
             <button

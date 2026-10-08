@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   Calendar,
   CheckCircle2,
-  Check
+  Check,
+  HelpCircle
 } from 'lucide-react';
 import { PROCUREMENT_CATEGORIES, PROCUREMENT_GRADES, PROCUREMENT_REGIONS } from '../data/bidProcurementData';
 
@@ -29,6 +30,7 @@ export default function BidFilterBar({
   setSortBy,
   onResetFilters,
   onOpenProfileModal,
+  onOpenFaq,
   profile,
   resultCount,
   totalCount
@@ -110,6 +112,18 @@ export default function BidFilterBar({
             <span className="text-xs text-slate-500">
               該当 <strong className="text-indigo-700 font-bold text-sm">{resultCount}</strong> / 全 {totalCount} 件
             </span>
+
+            {/* FAQ Guide Button */}
+            {onOpenFaq && (
+              <button
+                onClick={onOpenFaq}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition"
+                title="A〜D等級の意味や自社設定理由のFAQガイドを見る"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-600" />
+                <span>入札・等級FAQ</span>
+              </button>
+            )}
 
             {/* Profile Config Trigger */}
             <button

@@ -6,7 +6,8 @@ export default function BidProfileModal({
   isOpen,
   onClose,
   profile,
-  onSaveProfile
+  onSaveProfile,
+  onOpenFaq
 }) {
   if (!isOpen) return null;
 
@@ -95,20 +96,34 @@ export default function BidProfileModal({
           {/* Qualification Grade & Region */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 mb-1 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                全省庁統一資格（役務の提供等）の保有等級
+              <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                  全省庁統一資格（役務の提供等）の保有等級
+                </span>
+                {onOpenFaq && (
+                  <button
+                    type="button"
+                    onClick={onOpenFaq}
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 underline font-bold"
+                  >
+                    等級とは？
+                  </button>
+                )}
               </label>
               <select
                 value={qualifiedGrade}
                 onChange={(e) => setQualifiedGrade(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-indigo-950"
               >
-                <option value="A">A等級（大規模・総合案件）</option>
-                <option value="B">B等級（中〜大規模案件）</option>
-                <option value="C">C等級（中〜小規模案件・標準）</option>
-                <option value="D">D等級（小規模案件・スタートアップ）</option>
+                <option value="A">A等級（大企業・3,000万円以上の超大型案件）</option>
+                <option value="B">B等級（中堅企業・1,500万〜3,000万円規模）</option>
+                <option value="C">C等級（中小IT企業標準・数百万円〜1,500万円）</option>
+                <option value="D">D等級（小規模・数百万円未満の少額案件）</option>
               </select>
+              <p className="text-[10px] text-slate-500 mt-1">
+                💡 <strong>なぜ設定するのか？:</strong> 自社が法令上参加できる案件を自動判定するためです。自社等級を満たさない案件（A限定など）は自動でNo-Go（除外）されます。
+              </p>
             </div>
 
             <div>
@@ -118,15 +133,20 @@ export default function BidProfileModal({
               <select
                 value={targetRegion}
                 onChange={(e) => setTargetRegion(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
               >
                 <option value="kanto">関東・甲信越（東京・神奈川等）</option>
                 <option value="kinki">近畿（大阪・京都・兵庫等）</option>
                 <option value="chubu">東海・中部</option>
                 <option value="kyushu">九州・沖縄</option>
                 <option value="tohoku">東北</option>
+                <option value="chugoku_shikoku">中国・四国</option>
+                <option value="hokkaido">北海道</option>
                 <option value="all">全国（地域不問）</option>
               </select>
+              <p className="text-[10px] text-slate-500 mt-1">
+                自社が納品・現地対応できるエリア。対象地域が合致するとスコアが加点されます。
+              </p>
             </div>
           </div>
 
