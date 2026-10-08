@@ -139,6 +139,80 @@ export async function fetchFeeds() {
   return { feeds: OFFICIAL_FEEDS_CONFIG };
 }
 
+// ================= KKJ Official API Procurement Service =================
+const LIVE_PROCUREMENT_STORAGE_KEY = 'govinfo_procurement_cached_v1';
+
+export async function fetchProcurementArticles() {
+  try {
+    const res = await fetch('/api/procurement');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.articles && data.articles.length > 0) {
+        localStorage.setItem(LIVE_PROCUREMENT_STORAGE_KEY, JSON.stringify(data.articles));
+        return {
+          procurementArticles: data.articles,
+          total: data.total,
+          lastFetchedTime: data.lastFetchedTime || new Date().toISOString(),
+          isLive: true
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Procurement API request notice:', err.message);
+  }
+
+  // Fallback to local cache if offline
+  try {
+    const stored = localStorage.getItem(LIVE_PROCUREMENT_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.length > 0) {
+        return {
+          procurementArticles: parsed,
+          total: parsed.length,
+          lastFetchedTime: new Date().toISOString(),
+          isLive: true
+        };
+      }
+    }
+  } catch (e) {}
+
+  return {
+    procurementArticles: [],
+    total: 0,
+    lastFetchedTime: new Date().toISOString(),
+    isLive: false
+  };
+}
+
+export async function triggerProcurementRefresh() {
+  try {
+    const res = await fetch('/api/procurement/refresh', { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.articles && data.articles.length > 0) {
+        localStorage.setItem(LIVE_PROCUREMENT_STORAGE_KEY, JSON.stringify(data.articles));
+      }
+      return {
+        success: true,
+        articles: data.articles || [],
+        total: data.total || 0,
+        message: data.message || `官公需情報ポータル（KKJ）公式APIより最新${data.total || 0}件の入札公告を同期しました`,
+        lastFetchedTime: data.lastFetchedTime
+      };
+    }
+  } catch (err) {
+    console.warn('Procurement refresh notice:', err.message);
+  }
+
+  return {
+    success: false,
+    articles: [],
+    total: 0,
+    message: '入札データの同期に失敗しました。接続をご確認ください。'
+  };
+}
+
 export async function addCustomFeed(feedData) {
   try {
     const res = await fetch('/api/feeds/add', {

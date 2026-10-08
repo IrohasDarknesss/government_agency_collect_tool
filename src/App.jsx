@@ -30,6 +30,8 @@ import {
   fetchFeeds,
   addCustomFeed,
   toggleFeedState,
+  fetchProcurementArticles,
+  triggerProcurementRefresh,
   getBookmarks,
   saveBookmark,
   removeBookmark,
@@ -130,6 +132,12 @@ export default function App() {
         if (loadedFeeds.feeds && loadedFeeds.feeds.length > 0) {
           setFeeds(loadedFeeds.feeds);
         }
+
+        // Live Procurement data from official KKJ API
+        const procRes = await fetchProcurementArticles();
+        if (procRes.procurementArticles && procRes.procurementArticles.length > 0) {
+          setBiddingArticles(procRes.procurementArticles);
+        }
       } catch (err) {
         console.error('Data load failed:', err);
       } finally {
@@ -150,12 +158,13 @@ export default function App() {
         setArticles(loaded.articles || []);
         showToast(res.message || '省庁データを最新同期しました', 'success');
       } else {
-        // Procurement refresh simulation (or KKJ live fetch)
-        setTimeout(() => {
-          showToast('官公需情報ポータル（KKJ）の最新入札公告を同期しました', 'success');
-          setIsRefreshing(false);
-        }, 800);
-        return;
+        const res = await triggerProcurementRefresh();
+        if (res.articles && res.articles.length > 0) {
+          setBiddingArticles(res.articles);
+          showToast(res.message || `官公需ポータル（KKJ）公式APIより最新${res.articles.length}件を同期しました`, 'success');
+        } else {
+          showToast('官公需ポータル（KKJ）からの最新取得に失敗しました', 'error');
+        }
       }
     } catch (err) {
       showToast('最新取得中にエラーが発生しました。', 'error');
@@ -481,16 +490,18 @@ export default function App() {
             ) : (
               <div className="space-y-4">
                 {/* Data Source Notice Bar */}
-                <div className="bg-slate-100 border border-slate-200/80 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
+                <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-950">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>
-                      <strong>官公需ポータル（KKJ）調達仕様データ稼働中</strong>（計{biddingArticles.length}件の公告をリアルタイム判定中）
+                      <strong>中小企業庁 官公需情報ポータル（KKJ）公式API リアルタイム同期中</strong>（生案件 <strong>{biddingArticles.length}件</strong> を自動判定）
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    全省庁統一資格（A〜D等級）照合＆Go/No-Go判定アルゴリズム稼働中
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200 font-bold">
+                      全国省庁・自治体の生調達データ（ファクト直結）
+                    </span>
+                  </div>
                 </div>
 
                 {/* Notice bar if High match is active */}

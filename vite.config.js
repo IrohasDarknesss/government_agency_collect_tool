@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import Parser from 'rss-parser';
+import { fetchLiveKkjProcurement } from './src/services/kkjApiServer.js';
 
 const OFFICIAL_FEEDS = [
   {
@@ -329,6 +330,44 @@ function govApiPlugin() {
             lastFetchedTime: lastSyncTime,
             logs: syncLogs
           }));
+          return;
+        }
+
+        // Endpoint: GET /api/procurement (KKJ official API real-time notices)
+        if (req.url === '/api/procurement' && req.method === 'GET') {
+          try {
+            const data = await fetchLiveKkjProcurement(false);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({
+              success: true,
+              articles: data.articles,
+              total: data.total,
+              lastFetchedTime: data.lastFetchedTime,
+              source: '官公需情報ポータル（KKJ）公式API'
+            }));
+          } catch (err) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message, articles: [] }));
+          }
+          return;
+        }
+
+        // Endpoint: POST /api/procurement/refresh (Force refresh from KKJ)
+        if (req.url === '/api/procurement/refresh' && req.method === 'POST') {
+          try {
+            const data = await fetchLiveKkjProcurement(true);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({
+              success: true,
+              articles: data.articles,
+              total: data.total,
+              lastFetchedTime: data.lastFetchedTime,
+              message: `官公需情報ポータル（KKJ）公式APIより最新${data.total}件の入札公告を同期しました`
+            }));
+          } catch (err) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message, articles: [] }));
+          }
           return;
         }
 
