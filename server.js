@@ -1,0 +1,305 @@
+import express from 'express';
+import cors from 'cors';
+import Parser from 'rss-parser';
+
+const app = express();
+const port = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const OFFICIAL_GOV_FEEDS = [
+  {
+    id: 'digital',
+    name: 'デジタル庁 報道発表',
+    agency: 'デジタル庁',
+    agencyCode: 'digital',
+    url: 'https://www.digital.go.jp/rss/news.xml',
+    encoding: 'utf-8',
+    enabled: true
+  },
+  {
+    id: 'meti',
+    name: '経済産業省・中小企業庁 ニュースリリース',
+    agency: '経済産業省・中小企業庁',
+    agencyCode: 'meti',
+    url: 'https://www.meti.go.jp/press/index.xml',
+    encoding: 'utf-8',
+    enabled: true
+  },
+  {
+    id: 'mhlw',
+    name: '厚生労働省 報道発表資料',
+    agency: '厚生労働省',
+    agencyCode: 'mhlw',
+    url: 'https://www.mhlw.go.jp/stf/news.rdf',
+    encoding: 'shift_jis', // 厚労省RDFはShift_JIS配信
+    enabled: true
+  },
+  {
+    id: 'mic',
+    name: '総務省 報道資料',
+    agency: '総務省',
+    agencyCode: 'mic',
+    url: 'https://www.soumu.go.jp/news.rdf',
+    encoding: 'shift_jis', // 総務省RDFはShift_JIS配信
+    enabled: true
+  },
+  {
+    id: 'kantei',
+    name: '首相官邸 ヘッドライン',
+    agency: '首相官邸・内閣府',
+    agencyCode: 'kantei',
+    url: 'https://www.kantei.go.jp/jp/headline/rss/headline.rdf',
+    encoding: 'utf-8',
+    enabled: true
+  },
+  {
+    id: 'fsa',
+    name: '金融庁 報道発表',
+    agency: '金融庁',
+    agencyCode: 'fsa',
+    url: 'https://www.fsa.go.jp/news/rss.xml',
+    encoding: 'utf-8',
+    enabled: true
+  },
+  {
+    id: 'moe',
+    name: '環境省 報道発表',
+    agency: '環境省',
+    agencyCode: 'moe',
+    url: 'https://www.env.go.jp/rss/news.xml',
+    encoding: 'utf-8',
+    enabled: true
+  },
+  {
+    id: 'cfa',
+    name: 'こども家庭庁 最新情報',
+    agency: 'こども家庭庁',
+    agencyCode: 'cfa',
+    url: 'https://www.cfa.go.jp/rss/news.xml',
+    encoding: 'utf-8',
+    enabled: true
+  },
+  {
+    id: 'tokyo',
+    name: '東京都 報道発表',
+    agency: '東京都庁',
+    agencyCode: 'kantei',
+    url: 'https://www.metro.tokyo.lg.jp/rss/news.xml',
+    encoding: 'utf-8',
+    enabled: true
+  }
+];
+
+function sanitizeHtml(str = '') {
+  return str
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function decodeJapaneseXml(buffer, contentType = '', defaultHint = 'utf-8') {
+  const ctMatch = contentType.match(/charset=([a-zA-Z0-9_-]+)/i);
+  let detectedEncoding = ctMatch ? ctMatch[1].toLowerCase() : null;
+
+  if (!detectedEncoding) {
+    const headAscii = buffer.slice(0, 512).toString('latin1');
+    const xmlMatch = headAscii.match(/<\?xml[^>]+encoding=["']([a-zA-Z0-9_-]+)["']/i);
+    if (xmlMatch) {
+      detectedEncoding = xmlMatch[1].toLowerCase();
+    }
+  }
+
+  if (!detectedEncoding) {
+    detectedEncoding = defaultHint.toLowerCase();
+  }
+
+  if (['sjis', 'shift_jis', 'shift-jis', 'x-sjis', 'cp932', 'windows-31j', 'ms932'].includes(detectedEncoding)) {
+    detectedEncoding = 'shift_jis';
+  } else if (['euc-jp', 'eucjp', 'x-euc-jp'].includes(detectedEncoding)) {
+    detectedEncoding = 'euc-jp';
+  } else {
+    detectedEncoding = 'utf-8';
+  }
+
+  try {
+    const decoder = new TextDecoder(detectedEncoding, { fatal: false });
+    const text = decoder.decode(buffer);
+    const replacementCount = (text.match(/\uFFFD/g) || []).length;
+    if (replacementCount > 3) {
+      const fallbackEnc = detectedEncoding === 'utf-8' ? 'shift_jis' : 'utf-8';
+      const fallbackDecoder = new TextDecoder(fallbackEnc, { fatal: false });
+      return fallbackDecoder.decode(buffer);
+    }
+    return text;
+  } catch (err) {
+    return new TextDecoder('utf-8').decode(buffer);
+  }
+}
+
+function inferCategory(title = '', desc = '') {
+  const text = `${title} ${desc}`.toLowerCase();
+  if (text.includes('補助金') || text.includes('助成金') || text.includes('公募') || text.includes('交付金') || text.includes('給付')) return 'subsidy';
+  if (text.includes('デジタル') || text.includes('ai') || text.includes('マイナンバー') || text.includes('it') || text.includes('クラウド') || text.includes('サイバー') || text.includes('通信')) return 'digital';
+  if (text.includes('労働') || text.includes('雇用') || text.includes('賃金') || text.includes('年金') || text.includes('社保') || text.includes('働き方') || text.includes('就労')) return 'labor';
+  if (text.includes('経済') || text.includes('産業') || text.includes('中小企業') || text.includes('スタートアップ') || text.includes('投資') || text.includes('物価') || text.includes('貿易')) return 'economy';
+  if (text.includes('パブリックコメント') || text.includes('意見公募') || text.includes('政令') || text.includes('法律') || text.includes('告示') || text.includes('基準') || text.includes('改正')) return 'law';
+  if (text.includes('脱炭素') || text.includes('環境') || text.includes('エネルギー') || text.includes('再エネ') || text.includes('温暖化') || text.includes('gx') || text.includes('省エネ')) return 'green';
+  if (text.includes('医療') || text.includes('健康') || text.includes('感染症') || text.includes('病院') || text.includes('介護') || text.includes('福祉') || text.includes('薬品')) return 'health';
+  if (text.includes('こども') || text.includes('教育') || text.includes('学校') || text.includes('少子化') || text.includes('子育て') || text.includes('大学') || text.includes('児童')) return 'education';
+  if (text.includes('防災') || text.includes('地震') || text.includes('台風') || text.includes('警察') || text.includes('消防') || text.includes('防衛') || text.includes('安全') || text.includes('気象')) return 'safety';
+  return 'economy';
+}
+
+function inferType(title = '', desc = '') {
+  const text = `${title} ${desc}`.toLowerCase();
+  if (text.includes('公募') || text.includes('補助金') || text.includes('助成金') || text.includes('申請受付') || text.includes('募集')) return 'grant';
+  if (text.includes('パブリックコメント') || text.includes('意見募集') || text.includes('意見公募')) return 'pubcom';
+  if (text.includes('審議会') || text.includes('検討会') || text.includes('分科会') || text.includes('会議結果') || text.includes('部会')) return 'council';
+  if (text.includes('統計') || text.includes('調査結果') || text.includes('白書') || text.includes('速報') || text.includes('報告書')) return 'stat';
+  if (text.includes('公布') || text.includes('施行') || text.includes('改正') || text.includes('政令') || text.includes('法令')) return 'law';
+  return 'press';
+}
+
+const parser = new Parser({
+  customFields: {
+    item: [
+      ['description', 'description'],
+      ['content:encoded', 'contentEncoded'],
+      ['dc:date', 'dcDate'],
+      ['pubDate', 'pubDate'],
+      ['category', 'category']
+    ]
+  }
+});
+
+let liveFeeds = [...OFFICIAL_GOV_FEEDS];
+let liveArticles = [];
+let lastFetchTimestamp = null;
+let fetchLogs = [];
+
+async function fetchAllOfficialFeeds() {
+  const aggregatedArticles = [];
+  const logs = [];
+
+  for (const feed of liveFeeds) {
+    if (!feed.enabled) continue;
+    try {
+      const res = await fetch(feed.url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 GovInfoHub/1.0',
+          'Accept': 'application/rss+xml, application/rdf+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const contentType = res.headers.get('content-type') || '';
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const xmlString = decodeJapaneseXml(buffer, contentType, feed.encoding || 'utf-8');
+      const parsed = await parser.parseString(xmlString);
+      feed.lastUpdated = new Date().toLocaleString('ja-JP');
+
+      const items = (parsed.items || []).map((item, idx) => {
+        const title = sanitizeHtml(item.title || '公表文書');
+        const desc = sanitizeHtml(item.contentSnippet || item.description || item.contentEncoded || title);
+        const link = item.link || feed.url;
+        const rawDate = item.pubDate || item.dcDate || new Date().toISOString();
+
+        const category = inferCategory(title, desc);
+        const type = inferType(title, desc);
+
+        const autoTags = [feed.agency.split('・')[0]];
+        if (title.includes('補助金')) autoTags.push('補助金');
+        if (title.includes('AI')) autoTags.push('AI');
+        if (title.includes('DX')) autoTags.push('DX');
+
+        return {
+          id: `live-${feed.id}-${idx}-${Buffer.from(link + title).toString('base64').slice(0, 14)}`,
+          title,
+          agency: feed.agency,
+          agencyCode: feed.agencyCode || feed.id,
+          category,
+          type,
+          publishedAt: new Date(rawDate).toISOString(),
+          summary: desc.slice(0, 350) || `${feed.agency}発表の最新リアルタイム公式情報です。`,
+          detailedPoints: [
+            `${feed.agency}が公式配信（RSS/RDF）した新着一次情報です`,
+            '公表本文・申請窓口は各府省庁の公式リンク先よりご確認ください'
+          ],
+          targetAudience: '全国の事業者、地方自治体、関係機関、国民一般',
+          url: link,
+          tags: autoTags,
+          importance: title.includes('公募') || title.includes('重要') || title.includes('改正') ? 'high' : 'normal',
+          source: 'official_rss_live',
+          feedName: feed.name
+        };
+      });
+
+      aggregatedArticles.push(...items);
+      logs.push({ feed: feed.name, status: 'OK', count: items.length });
+    } catch (err) {
+      logs.push({ feed: feed.name, status: `ERROR: ${err.message}`, count: 0 });
+    }
+  }
+
+  const seen = new Set();
+  const unique = [];
+  for (const art of aggregatedArticles) {
+    if (!seen.has(art.url) && !seen.has(art.title)) {
+      seen.add(art.url);
+      seen.add(art.title);
+      unique.push(art);
+    }
+  }
+
+  unique.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  liveArticles = unique;
+  lastFetchTimestamp = new Date().toISOString();
+  fetchLogs = logs;
+  return { total: unique.length, logs, lastFetchTimestamp };
+}
+
+app.get('/api/articles', async (req, res) => {
+  if (liveArticles.length === 0) {
+    await fetchAllOfficialFeeds();
+  }
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    articles: liveArticles,
+    total: liveArticles.length,
+    lastFetchedTime: lastFetchTimestamp,
+    logs: fetchLogs
+  });
+});
+
+app.post('/api/feeds/refresh', async (req, res) => {
+  const result = await fetchAllOfficialFeeds();
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({
+    success: true,
+    message: `最新${result.total}件を文字化けなく正常同期しました`,
+    total: result.total,
+    lastFetchedTime: result.lastFetchTimestamp,
+    logs: result.logs
+  });
+});
+
+app.get('/api/feeds', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({ feeds: liveFeeds });
+});
+
+app.listen(port, () => {
+  console.log(`GovInfo Server running at http://localhost:${port}`);
+  fetchAllOfficialFeeds().catch(() => {});
+});
